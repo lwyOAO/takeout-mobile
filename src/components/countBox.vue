@@ -1,23 +1,30 @@
 <script setup>
-defineProps({
-  modelValue: {
-    type: Number,
-    default: 1
+import { computed } from 'vue'
+
+const props = defineProps(['modelValue'])
+const emit = defineEmits(['update:modelValue'])
+const value = computed({
+  get() {
+    return props.modelValue
+  },
+  set(value) {
+    emit('update:modelValue', value)
   }
 })
-
 // 定义监听事件
-const emit = defineEmits(['change', 'update:modelValue'])
 const addValue = () => {
-  emit('change', 'add')
+  emit('update:modelValue', +props.modelValue + 1)
 }
 const subValue = () => {
-  emit('change', 'sub')
+  emit('update:modelValue', +props.modelValue - 1)
 }
 const changeValue = (e) => {
+  if (e.target.value === '') {
+    e.target.value = 0
+  }
   const num = +e.target.value
   if (!isNaN(num) || num >= 0) {
-    emit('update:modelValue', e.target.value)
+    emit('update:modelValue', +e.target.value)
   } else {
     e.target.value = 0
   }
@@ -29,7 +36,7 @@ const changeValue = (e) => {
     <button class="minu" @click="subValue" :disabled="modelValue <= 0">
       -
     </button>
-    <input type="text" class="value" :value="modelValue" @input="changeValue" />
+    <input class="value" :value="value" @input="changeValue" type="number" />
     <button class="add" @click="addValue">+</button>
   </div>
 </template>

@@ -10,6 +10,7 @@ const router = createRouter({
     {
       path: '/',
       component: () => import('@/components/layoutContainer.vue'),
+      redirect: '/main',
       children: [
         {
           path: '/main',

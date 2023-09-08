@@ -108,14 +108,7 @@ onMounted(() => {
 
 // 统计购买数量
 const count = ref(0)
-const countChange = (type) => {
-  if (type === 'add') {
-    count.value = count.value + 1
-  } else if (type === 'sub') {
-    count.value = count.value - 1
-  }
-}
-const change = (value) => {
+const countChange = (value) => {
   if (value >= 0) {
     count.value = value
   }
@@ -172,8 +165,7 @@ const change = (value) => {
                 <div class="footer">
                   <countBox
                     :modelValue="count"
-                    @change="countChange"
-                    @update:modelValue="change"
+                    @update:modelValue="countChange"
                   ></countBox>
                 </div>
               </template>
