@@ -1,39 +1,81 @@
 <script setup>
 import countBox from '@/components/countBox.vue'
 import { computed } from 'vue'
-import { useCartStore } from '@/stores/'
+import { ref } from 'vue'
+import { getCartList, orderSub } from '@/api/shoppingCart'
+import { showFailToast, showSuccessToast } from 'vant'
 
 // 购物车列表管理
-const cartStore = useCartStore()
-cartStore.getCartList()
+const cartList = ref()
+// 初始化获取购物车数据
+const getCartData = async () => {
+  const res = await getCartList()
+  res.data.data.forEach((item) => {
+    item.isChecked = false
+  })
+  if (res.data.code === 1) {
+    cartList.value = res.data.data
+  } else {
+    showFailToast('获取购物车数据失败')
+  }
+}
+getCartData()
 
 // 总价格
 const totalPrice = computed(() => {
-  return cartStore.getSelPrice()
+  return cartList.value
+    .filter((item) => item.isChecked)
+    .reduce((sum, item) => sum + item.number * item.amount, 0)
+    .toFixed(2)
 })
+// 选中件数
 const cartSelTotal = computed(() => {
-  return cartStore.getSelCartNum()
+  return cartList.value
+    .filter((item) => item.isChecked)
+    .reduce((sum, item) => sum + item.number, 0)
 })
+// 总件数
 const cartTotal = computed(() => {
-  return cartStore.getCartNum()
+  return cartList.value.reduce((sum, item) => sum + item.number, 0)
 })
 
 // 复选框管理
 const toggleCheckBox = (goodId) => {
-  cartStore.toggleSelStatus(goodId)
-}
-
-// 单件商品数量管理
-const countChange = (value, goodId) => {
-  cartStore.changeNum(goodId, value)
+  const good = cartList.value.find((item) => item.id === goodId)
+  good.isChecked = !good.isChecked
 }
 
 // 是否全选
 const selAll = computed(() => {
-  return cartStore.SelAll()
+  return cartList.value.every((item) => item.isChecked === true)
 })
+// 反选
 const selectAll = () => {
-  cartStore.toggleSelAll(!cartStore.SelAll())
+  let isTrue = !selAll.value
+  cartList.value.forEach((item) => (item.isChecked = isTrue))
+}
+
+// 结算
+const OnSub = async () => {
+  const res = await orderSub({
+    id: 0,
+    number: 'string',
+    status: 0,
+    userId: 0,
+    addressBookId: 0,
+    orderTime: 'string',
+    checkoutTime: 'string',
+    payMethod: 1,
+    amount: totalPrice.value,
+    remark: 'string',
+    userName: 'string',
+    phone: 'string',
+    address: 'string',
+    consignee: 'string'
+  })
+  if (res.data.code === 1) {
+    showSuccessToast('结算成功')
+  }
 }
 </script>
 
@@ -52,25 +94,25 @@ const selectAll = () => {
     </div>
   </div>
   <div class="cart-list">
-    <div class="cart-item" v-for="item in cartStore.cartlist" :key="item.id">
+    <div class="cart-item" v-for="(item, index) in cartList" :key="index">
       <van-checkbox
         :modelValue="item.isChecked"
-        @click="toggleCheckBox(item.goods_id)"
+        @click="toggleCheckBox(item.id)"
       ></van-checkbox>
       <div class="show">
-        <img src="https://fastly.jsdelivr.net/npm/@vant/assets/ipad.jpeg" />
+        <img src="~@/assets/images/images.jpg" class="img" />
       </div>
       <div class="info">
         <span class="tit text-ellipsis-2"
-          >新华为Pad 14英寸 12+128英寸 远峰蓝M6平板电脑 智能安卓娱乐</span
+          >{{ item.name }} ({{ item.dishFlavor }})</span
         >
         <span class="bottom">
           <div class="price">
-            $<span>{{ item.price }}</span>
+            $<span>{{ item.amount }}</span>
           </div>
           <countBox
-            :modelValue="item.goods_num"
-            @update:modelValue="(value) => countChange(value, item.goods_id)"
+            :modelValue="item.number"
+            @update:modelValue="(value) => (item.number = value)"
           ></countBox>
         </span>
       </div>
@@ -85,6 +127,7 @@ const selectAll = () => {
       <van-button
         color="linear-gradient(to right, #ff6034, #ee0a24)"
         size="small"
+        @click="OnSub"
       >
         结算 ({{ cartSelTotal }})
       </van-button>
@@ -136,6 +179,12 @@ const selectAll = () => {
       overflow: hidden;
       margin: 0 5px;
       padding: 5px 0;
+      .img {
+        max-width: 100%;
+        max-height: 100%;
+        display: block;
+        margin: auto;
+      }
     }
     .info {
       .tit {

@@ -2,11 +2,14 @@
 import BScroll from 'better-scroll'
 import { ref, computed, onMounted, nextTick } from 'vue'
 import countBox from '@/components/countBox.vue'
+import { getFoodCategory, getFoodCategoryDishes } from '@/api/foodSet.js'
+import { showSuccessToast, showFailToast } from 'vant'
+import { addCart } from '@/api/shoppingCart.js'
 
 // 轮播图片链接
 const images = ref([
-  'https://fastly.jsdelivr.net/npm/@vant/assets/apple-1.jpeg',
-  'https://fastly.jsdelivr.net/npm/@vant/assets/apple-2.jpeg'
+  'src/assets/images/11680438_185250860101_2.jpg',
+  'src/assets/images/12428763_220448096035_2.jpg'
 ])
 
 // 右侧滑动的Y轴坐标 (滑动过程时实时变化)
@@ -25,12 +28,7 @@ const goods = ref([
   { name: 'G' },
   { name: 'H' },
   { name: 'I' },
-  { name: 'J' },
-  { name: 'K' },
-  { name: 'L' },
-  { name: 'M' },
-  { name: 'N' },
-  { name: 'O' }
+  { name: 'J' }
 ])
 
 const _foodsScroll = ref()
@@ -78,9 +76,8 @@ const _initTops = () => {
   _tops.value = tops
 }
 
+// 使用右侧列表滑动到对应的位置
 const clickMenuItem = (index) => {
-  // 使用右侧列表滑动到对应的位置
-
   // 得到目标位置的scrollY
   const scrollY = _tops.value[index]
   // 立即更新scrollY(让点击的分类项成为当前分类)
@@ -106,12 +103,72 @@ onMounted(() => {
   })
 })
 
-// 统计购买数量
-const count = ref(0)
-const countChange = (value) => {
-  if (value >= 0) {
-    count.value = value
+// 分页数据
+const CateParams = ref({
+  page: 1,
+  pageSize: 10
+})
+
+// 初始获取套餐数据
+const foodClassList = ref([])
+const foodList = ref([])
+const getComboData = async () => {
+  const res = await getFoodCategory(CateParams.value)
+  console.log(res)
+  if (res.data.code === 1) {
+    foodClassList.value = res.data.data
   }
+  // 获取右侧数据
+  foodClassList.value.forEach(async (item) => {
+    console.log('分支')
+    console.log(item)
+    let res = await getFoodCategoryDishes(item.id, 1)
+    // 处理数据，加上count字段
+    res.data.data.forEach((item) => {
+      item.count = 0
+    })
+    console.log('👉')
+    console.log(res)
+    if (res.data.code === 1) {
+      foodList.value.push(res.data.data)
+    }
+  })
+
+  console.log('右侧')
+  console.log(foodList.value)
+  goods.value = foodList.value
+}
+getComboData()
+
+// 弹窗
+const showCenter = ref(false)
+
+// 加入购物车
+const OnaddCart = () => {
+  // 对goods的每一个元素进行判断，若count>0则发送请求
+  goods.value.forEach((items) => {
+    items.forEach(async (item) => {
+      if (item.count > 0) {
+        console.log('item')
+        console.log(item)
+        // 发送请求
+        const res = await addCart({
+          name: item.name,
+          dishId: item.id,
+          setmealId: item.categoryId,
+          number: item.count,
+          amount: item.price,
+          dishFlavor: '不要蒜,不辣'
+        })
+        console.log(res)
+        if (res.data.code === 1) {
+          showSuccessToast('加入购物车成功')
+        } else {
+          showFailToast('加入购物车失败')
+        }
+      }
+    })
+  })
 }
 </script>
 
@@ -120,7 +177,7 @@ const countChange = (value) => {
   <div class="my-swipe">
     <van-swipe :autoplay="3000">
       <van-swipe-item v-for="image in images" :key="image">
-        <img :src="image" />
+        <img :src="image" class="img" />
       </van-swipe-item>
     </van-swipe>
   </div>
@@ -132,14 +189,14 @@ const countChange = (value) => {
         <ul>
           <li
             class="menu-item"
-            v-for="(good, index) in goods"
+            v-for="(foodclass, index) in foodClassList"
             :key="index"
             :class="{ current: index === currentIndex }"
             @click="clickMenuItem(index)"
           >
             <span class="text">
-              <img class="icon" :src="good.icon" v-if="good.icon" />
-              {{ good.name }}
+              <img class="icon" :src="foodclass.icon" v-if="foodclass.icon" />
+              {{ foodclass.name }}
             </span>
           </li>
         </ul>
@@ -148,33 +205,58 @@ const countChange = (value) => {
         <ul ref="foodsUl">
           <li
             class="food-list-hook"
-            v-for="(good, index) in goods"
+            v-for="(listItem, index) in goods"
             :key="index"
           >
-            <van-card
-              :num="1"
-              price="2999.00"
-              desc="遥遥领先"
-              title="华为平板"
-              thumb="https://fastly.jsdelivr.net/npm/@vant/assets/ipad.jpeg"
-            >
-              <template #tags>
-                <van-tag plain type="primary">孩子很喜欢</van-tag>
-              </template>
-              <template #footer>
-                <div class="footer">
-                  <countBox
-                    :modelValue="count"
-                    @update:modelValue="countChange"
-                  ></countBox>
-                </div>
-              </template>
-            </van-card>
+            <ul>
+              <li v-for="(food, sindex) in listItem" :key="sindex">
+                <van-card
+                  :num="1"
+                  :price="food.price"
+                  desc="美食点击就送"
+                  :title="food.name"
+                  thumb="src/assets/images/images.jpg"
+                >
+                  <template #tags>
+                    <van-tag plain type="primary">人气火热</van-tag>
+                  </template>
+                  <template #footer>
+                    <div class="footer">
+                      <countBox
+                        :modelValue="food.count"
+                        @update:modelValue="
+                          (value) => {
+                            food.count = value
+                          }
+                        "
+                      ></countBox>
+                    </div>
+                  </template>
+                </van-card>
+              </li>
+            </ul>
           </li>
         </ul>
       </div>
     </div>
   </div>
+
+  <div class="bottom">
+    <van-button
+      color="linear-gradient(to right, #ff6034, #ee0a24)"
+      size="small"
+      @click="OnaddCart"
+      >加入购物车</van-button
+    >
+  </div>
+
+  <!-- 圆角弹窗（居中） -->
+  <van-popup
+    v-model:show="showCenter"
+    round
+    closeable
+    :style="{ padding: '64px' }"
+  ></van-popup>
 </template>
 
 <style lang="scss" scoped>
@@ -184,6 +266,12 @@ const countChange = (value) => {
     color: #fff;
     font-size: 20px;
     text-align: center;
+    .img {
+      max-width: 100%;
+      max-height: 100%;
+      display: block;
+      margin: auto;
+    }
   }
 }
 .goods {
@@ -194,10 +282,9 @@ const countChange = (value) => {
   width: 100%;
   background: #fff;
   overflow: hidden;
-
   .left {
     flex: 0 0 20px;
-    width: 90px;
+    width: 80px;
     background: #f3f5f7;
 
     .menu-item {
@@ -230,8 +317,7 @@ const countChange = (value) => {
         display: table-cell;
         width: 56px;
         vertical-align: middle;
-        // bottom-border-1px(rgba(7, 17, 27, 0.1));
-        font-size: 16px;
+        font-size: 12px;
       }
     }
   }
@@ -329,5 +415,19 @@ li {
 ul {
   padding: 0;
   margin: 0;
+}
+
+.bottom {
+  position: fixed;
+  bottom: 50px;
+  width: 100%;
+  height: 45px;
+  background-color: #fff;
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  .van-popup {
+    margin-top: 10px;
+  }
 }
 </style>

@@ -1,18 +1,52 @@
 <script setup>
 import { useRouter } from 'vue-router'
 import { ref } from 'vue'
+import { userLogin, userRegister } from '@/api/login.js'
+import { showNotify } from 'vant'
+import 'vant/es/notify/style'
+
 const router = useRouter()
 
 const title = ref('登录')
+const formModel = ref({
+  phone: '',
+  password: ''
+})
 // 注册和登录切换, true为登录，false为注册
 const visiable = ref(true)
-const OnRegister = () => {
+const GoRegister = () => {
   title.value = '注册'
   visiable.value = false
 }
-const OnLand = () => {
+const GoLand = () => {
   title.value = '登录'
   visiable.value = true
+}
+
+// 登录
+const OnLand = async () => {
+  const res = await userLogin(formModel.value)
+  console.log('登录成功')
+  console.log(res)
+  if (res.data.code === 1) {
+    // 登录成功
+    showNotify({ type: 'success', message: '登录成功' })
+    router.push('/')
+  } else {
+    showNotify({ type: 'danger', message: res.data.msg })
+  }
+}
+
+// 注册
+const OnRegister = async () => {
+  const res = await userRegister(formModel.value)
+  if (res.data.code === 1) {
+    showNotify({ type: 'success', message: '注册成功' })
+    title.value = '登录'
+    visiable.value = true
+  } else {
+    showNotify({ type: 'danger', message: '注册失败' })
+  }
 }
 </script>
 
@@ -21,17 +55,17 @@ const OnLand = () => {
     <van-nav-bar :title="title" left-arrow @click-left="router.push('/main')" />
     <div class="container">
       <!--登录表单-->
-      <van-form @submit="onSubmit" v-if="visiable">
+      <van-form @submit="OnLand" v-if="visiable">
         <van-cell-group inset>
           <van-field
-            v-model="username"
-            name="用户名"
-            label="用户名"
-            placeholder="用户名"
-            :rules="[{ required: true, message: '请填写用户名' }]"
+            v-model="formModel.phone"
+            name="电话号码"
+            label="电话号码"
+            placeholder="电话号码"
+            :rules="[{ required: true, message: '请填写电话号码' }]"
           />
           <van-field
-            v-model="password"
+            v-model="formModel.password"
             type="password"
             name="密码"
             label="密码"
@@ -41,27 +75,28 @@ const OnLand = () => {
         </van-cell-group>
 
         <div style="margin: 20px">
-          <a href="#" @click="OnRegister">注册 -></a>
+          <a href="#" @click="GoRegister">注册 -></a>
         </div>
 
         <div style="margin: 16px">
           <van-button round block type="primary" native-type="submit">
-            提交
+            登录
           </van-button>
         </div>
       </van-form>
 
-      <van-form @submit="onSubmit" v-else>
+      <!--注册表单-->
+      <van-form @submit="OnRegister" v-else>
         <van-cell-group inset>
           <van-field
-            v-model="username"
-            name="用户名"
-            label="用户名"
-            placeholder="用户名"
-            :rules="[{ required: true, message: '请填写用户名' }]"
+            v-model="formModel.phone"
+            name="电话号码"
+            label="电话号码"
+            placeholder="电话号码"
+            :rules="[{ required: true, message: '请填写电话号码' }]"
           />
           <van-field
-            v-model="password"
+            v-model="formModel.password"
             type="password"
             name="密码"
             label="密码"
@@ -72,12 +107,12 @@ const OnLand = () => {
 
         <div class="tip">
           <a href="#" @click="MissPwd">忘记密码？</a>
-          <a href="#" @click="OnLand">&lt;- 返回</a>
+          <a href="#" @click="GoLand">&lt;- 返回</a>
         </div>
 
         <div style="margin: 16px">
           <van-button round block type="primary" native-type="submit">
-            提交
+            注册
           </van-button>
         </div>
       </van-form>
