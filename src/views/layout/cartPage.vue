@@ -6,7 +6,7 @@ import { getCartList, orderSub } from '@/api/shoppingCart'
 import { showFailToast, showSuccessToast } from 'vant'
 
 // 购物车列表管理
-const cartList = ref()
+const cartList = ref([])
 // 初始化获取购物车数据
 const getCartData = async () => {
   const res = await getCartList()
