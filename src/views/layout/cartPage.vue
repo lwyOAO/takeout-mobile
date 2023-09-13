@@ -4,6 +4,7 @@ import { computed } from 'vue'
 import { ref } from 'vue'
 import { getCartList, orderSub } from '@/api/shoppingCart'
 import { showFailToast, showSuccessToast } from 'vant'
+import { getDefaultAddress } from '@/api/addressBook'
 
 // 购物车列表管理
 const cartList = ref([])
@@ -11,7 +12,7 @@ const cartList = ref([])
 const getCartData = async () => {
   const res = await getCartList()
   res.data.data.forEach((item) => {
-    item.isChecked = false
+    item.isChecked = true
   })
   if (res.data.code === 1) {
     cartList.value = res.data.data
@@ -55,26 +56,25 @@ const selectAll = () => {
   cartList.value.forEach((item) => (item.isChecked = isTrue))
 }
 
+const address = ref({
+  id: 3
+})
+const params = ref({
+  remark: '来多点辣', // 备注信息
+  payMethod: 1,
+  addressBookId: address.value.id
+})
+
 // 结算
 const OnSub = async () => {
-  const res = await orderSub({
-    id: 0,
-    number: 'string',
-    status: 0,
-    userId: 0,
-    addressBookId: 0,
-    orderTime: 'string',
-    checkoutTime: 'string',
-    payMethod: 1,
-    amount: totalPrice.value,
-    remark: 'string',
-    userName: 'string',
-    phone: 'string',
-    address: 'string',
-    consignee: 'string'
-  })
+  const ares = await getDefaultAddress()
+  if (ares.data.code === 1) {
+    params.value.addressBookId = ares.data.data.id
+  }
+  const res = await orderSub(params.value)
   if (res.data.code === 1) {
     showSuccessToast('结算成功')
+    getCartData()
   }
 }
 </script>

@@ -10,11 +10,8 @@ export const setDefaultAddress = (data) =>
 // 根据id查询地址
 export const getAddressById = (id) => request.get(`/addressBook/${id}`)
 
-// 查询默认地址
-export const getDefaultAddress = (params) =>
-  request.get('/addressBook/default', {
-    params
-  })
+// 获取默认地址
+export const getDefaultAddress = () => request.get('/addressBook/default')
 
 // 查询指定用户的全部地址
 export const getAddressList = (params) =>

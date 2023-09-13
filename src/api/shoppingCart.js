@@ -7,4 +7,4 @@ export const getCartList = () => request.get('/shoppingCart/list')
 export const addCart = (data) => request.post('/shoppingCart/add', data)
 
 // 下单
-export const orderSub = (data) => request.post('/order', data)
+export const orderSub = (data) => request.post('/order/submit', data)
